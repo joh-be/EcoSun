@@ -1,0 +1,60 @@
+### Python
+
+#### Set up your config
+
+
+slackVerificationToken = 'your-slack-verification-token'
+slackCommandInputRegex = '^(\+[0-9]{12})\s(.*)$'
+
+routeeAppId = 'your-routee-application-id'
+routeeAppSecret = 'your-routee-application-secret'
+
+
+#### Get authenticated through Routee's API
+
+
+def routeeAuthenticate(routeeAppId, routeeAppSecret):
+    token = base64.b64encode(routeeAppId + ':' + routeeAppSecret)
+    headers = {"Content-type": "application/x-www-form-urlencoded", "Authorization": "Basic " + token}
+    requestBody = "grant_type=client_credentials"
+
+    r = requests.post("https://auth.routee.net/oauth/token", data=requestBody, headers=headers)
+
+    return r.json()['access_token']
+
+
+#### Send the SMS message
+
+
+def sendSmsMessage(authToken, message, sender, receiver):
+    headers = {"Content-type": "application/json", "Authorization": "Bearer " + authToken}
+    requestBody = {"body": message, "from": sender[0:11], "to": receiver}
+
+    r = requests.post("https://connect.routee.net/sms", json=requestBody, headers=headers)
+
+    return r.status_code == 200
+
+
+#### Perform HTTP request validation and returning a proper message to Slack's user
+
+
+def sendSlackResponse(message, channelId, slackResponseUrl):
+    headers = {"Content-type": "application/json", "Content-Length": len(message)}
+    requestBody = {"channel": channelId, "text": message}
+
+    r = requests.post(slackResponseUrl, json=requestBody, headers=headers)
+
+
+# validate request token
+if (matchObj) :
+    authToken = routeeAuthenticate(routeeAppId, routeeAppSecret)
+    success = sendSmsMessage(authToken, matchObj.group(2), data.getvalue('user_name'), matchObj.group(1))
+    # validate command syntax
+    if (success):
+        slackResponseMessage = "Message successfully send to " + matchObj.group(1)
+    else:
+        slackResponseMessage = "Sms message can't be send!"
+else:
+    slackResponseMessage = "Wrong command format! The correct one is - /sms +359899000000 Message text"
+
+sendSlackResponse(slackResponseMessage, data.getvalue('channel_id'), data.getvalue('response_url'))
